@@ -65,14 +65,15 @@ function render(){sel=-1;
  else if(cur==="q3"){if(cool("q3"))return wait("🙏 소감 감사합니다!","여러분의 문장이<br>곧 <b>큰 화면</b>에 올라갑니다<br><br>잠시 후, 한 줄 더 쓸 수 있어요");
   el('<div class="banner">'+(lastSent.q3?'✏️ 한 줄 더 쓰셔도 됩니다':'💬 마지막 — 소감 한 줄')+'</div><h1>오늘의 소감을 남겨주세요</h1><div class="sub">한글 30자 이내 · 익명 — 큰 화면에 흐릅니다</div><textarea id="t" maxlength="30" placeholder="한 줄이면 충분합니다"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q3\')">남기기</button>');bindCnt();}
  else if(cur==="q3closed"){wait("👏 오늘 고생 많으셨습니다","<b>가서, 물어보세요.</b>");}
- else{wait("👋 환영합니다!","잘 들어오셨습니다.<br>교육이 시작되면 이 화면이<br><b>저절로 바뀝니다.</b><br><br>화면을 끄지 말고<br>잠시, 진행을 기다려주세요.");}}
+ else{if(localStorage.getItem("fp_done"))wait("🎓 강의 중입니다","지금은 강의가 진행 중입니다.<br><b>앞의 강의 화면을 봐주세요.</b><br><br>다음 참여 순서가 되면<br>이 화면이 <b>저절로 바뀝니다.</b>");
+  else wait("👋 환영합니다!","잘 들어오셨습니다.<br>교육이 시작되면 이 화면이<br><b>저절로 바뀝니다.</b><br><br>화면을 끄지 말고<br>잠시, 진행을 기다려주세요.");}}
 
 function opts(gone){return OPTS.map(function(t,i){var g=gone.indexOf(i)>-1;
   return '<div class="opt'+(g?" gone":"")+'" onclick="pick(this,'+i+')"><span class="n">'+(i+1)+'</span><span>'+t+'</span></div>';}).join("");}
 function pick(e,i){sel=i;document.querySelectorAll(".opt").forEach(function(o){o.classList.remove("sel")});e.classList.add("sel");}
 function bindCnt(){var t=document.getElementById("t");t.addEventListener("input",function(){document.getElementById("c").textContent=t.value.length;});}
 
-function save(ph,v,r,ok,fail){db.collection('resp').add({ph:ph,v:v,r:r||'',d:DEV,t:Date.now()}).then(ok).catch(fail);}
+function save(ph,v,r,ok,fail){db.collection('resp').add({ph:ph,v:v,r:r||'',d:DEV,t:Date.now()}).then(function(){try{localStorage.setItem('fp_done','1')}catch(e){}ok();}).catch(fail);}
 function sendText(ph){if(busy)return;var v=document.getElementById("t").value.trim();if(!v)return alert("한 줄만 적어주세요");
   if(!confirm('이대로 보낼까요?\n\n「 '+v+' 」'))return;busy=true;
   save(ph,v,"",function(){busy=false;lastSent[ph]=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
