@@ -37,6 +37,7 @@ var CFG={apiKey:'AIzaSyDPSVu5cSoPG_1JmCkfP9TXfnRevTLn9WI',projectId:'fp-live-11c
 firebase.initializeApp(CFG);
 var db=firebase.firestore();
 var OPTS=["내 노후를 당겨쓴다","아내가 일을 내려놓는다","자녀의 미래를 희생한다","동생에게 2천만 원 여유가 있냐고 물어본다"];
+var OPTS4=["암진단비","암진단및치료비","암복합생활비","비급여암복합생활비","간병인사용입원생활비"];
 var cur=null,excl=0,sel=-1,busy=false,lastSent={},reTimer=null;
 var DEV=localStorage.getItem('fpdev');if(!DEV){DEV=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('fpdev',DEV);}
 
@@ -62,13 +63,15 @@ function render(){sel=-1;
   el('<div class="banner">'+(lastSent.q2r1?'🗳 다시 고르기 — 마지막 선택만 반영됩니다':'🗳 지금, 투표해주세요')+'</div><h1>여러분이 김 부장입니다.<br>어떤 기둥을 희생할까요?</h1><div class="sub">하나 선택 → 아래 이유(선택) → 투표하기</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (안 적어도 됩니다)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
  else if(cur==="q2r2"){if(cool("q2r2"))return wait("🗳 재투표 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 다시 고칠 수도 있어요");
   el('<div class="banner">'+(lastSent.q2r2?'🗳 다시 고르기 — 마지막 선택만 반영됩니다':'🗳 다시 한 번 — 재투표')+'</div><h1>치료가 계속됩니다.<br>남은 보기에서 다시 고르세요</h1><div class="sub">아까 1위였던 보기는 사라졌습니다</div>'+opts([excl-1])+'<button onclick="sendVote(\'q2r2\')">재투표하기</button>');}
+ else if(cur==="q4"){if(cool("q4"))return wait("🗳 투표 완료!","결과 공개를 기다려주세요.<br><br>잠시 후, 다시 고칠 수도 있어요<br>(마지막 선택만 반영됩니다)");
+  el('<div class="banner">'+(lastSent.q4?'🗳 다시 고르기 — 마지막 선택만 반영됩니다':'🗳 지금, 투표해주세요')+'</div><h1>만약 이분이 아직<br>암에 걸리지 않았다면 —<br>어떤 보장을 권하시겠습니까?</h1><div class="sub">하나 선택 → 투표하기</div>'+opts([],OPTS4)+'<button onclick="sendVote(\'q4\')">투표하기</button>');}
  else if(cur==="q3"){if(cool("q3"))return wait("🙏 소감 감사합니다!","여러분의 문장이<br>곧 <b>큰 화면</b>에 올라갑니다<br><br>잠시 후, 한 줄 더 쓸 수 있어요");
   el('<div class="banner">'+(lastSent.q3?'✏️ 한 줄 더 쓰셔도 됩니다':'💬 마지막 — 소감 한 줄')+'</div><h1>오늘의 소감을 남겨주세요</h1><div class="sub">한글 30자 이내 · 익명 — 큰 화면에 흐릅니다</div><textarea id="t" maxlength="30" placeholder="한 줄이면 충분합니다"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q3\')">남기기</button>');bindCnt();}
  else if(cur==="q3closed"){wait("👏 오늘 고생 많으셨습니다","<b>가서, 물어보세요.</b>");}
  else{if(localStorage.getItem("fp_done"))wait("🎓 강의 중입니다","지금은 강의가 진행 중입니다.<br><b>앞의 강의 화면을 봐주세요.</b><br><br>다음 참여 순서가 되면<br>이 화면이 <b>저절로 바뀝니다.</b>");
   else wait("👋 환영합니다!","잘 들어오셨습니다.<br>교육이 시작되면 이 화면이<br><b>저절로 바뀝니다.</b><br><br>화면을 끄지 말고<br>잠시, 진행을 기다려주세요.");}}
 
-function opts(gone){return OPTS.map(function(t,i){var g=gone.indexOf(i)>-1;
+function opts(gone,list){return (list||OPTS).map(function(t,i){var g=gone.indexOf(i)>-1;
   return '<div class="opt'+(g?" gone":"")+'" onclick="pick(this,'+i+')"><span class="n">'+(i+1)+'</span><span>'+t+'</span></div>';}).join("");}
 function pick(e,i){sel=i;document.querySelectorAll(".opt").forEach(function(o){o.classList.remove("sel")});e.classList.add("sel");}
 function bindCnt(){var t=document.getElementById("t");t.addEventListener("input",function(){document.getElementById("c").textContent=t.value.length;});}
@@ -78,7 +81,8 @@ function sendText(ph){if(busy)return;var v=document.getElementById("t").value.tr
   if(!confirm('이대로 보낼까요?\n\n「 '+v+' 」'))return;busy=true;
   save(ph,v,"",function(){busy=false;lastSent[ph]=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
 function sendVote(ph){if(busy)return;if(sel<0)return alert("보기를 먼저 선택해주세요");
-  if(!confirm('『 '+OPTS[sel]+' 』\n\n이대로 투표할까요?'))return;busy=true;
+  var list=ph==="q4"?OPTS4:OPTS;
+  if(!confirm('『 '+list[sel]+' 』\n\n이대로 투표할까요?'))return;busy=true;
   var rs=document.getElementById("r")?document.getElementById("r").value:"";
-  save(ph,OPTS[sel],rs,function(){busy=false;lastSent[ph]=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
+  save(ph,list[sel],rs,function(){busy=false;lastSent[ph]=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
 </script></body></html>
