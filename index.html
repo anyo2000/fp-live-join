@@ -38,6 +38,7 @@ firebase.initializeApp(CFG);
 var db=firebase.firestore();
 var OPTS=["내 노후를 당겨쓴다","아내가 일을 내려놓는다","자녀의 미래를 희생한다","동생에게 2천만 원 여유가 있냐고 물어본다"];
 var cur=null,excl=0,sel=-1,busy=false,lastSent={},reTimer=null;
+var DEV=localStorage.getItem('fpdev');if(!DEV){DEV=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('fpdev',DEV);}
 
 /* 실시간 리스너 — 진행자가 문항을 열면 즉시 화면 전환 */
 db.collection('live').doc('state').onSnapshot(function(doc){
@@ -57,10 +58,10 @@ function mark(k){localStorage.setItem("fp_"+k,"1");}
 function render(){sel=-1;
  if(cur==="q1"){if(cool("q1"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 한 개 더 쓸 수 있어요");
   el('<div class="banner">'+(lastSent.q1?'✏️ 한 개 더 쓰셔도 됩니다':'📝 지금, 입력해주세요')+'</div><h1>내일 내가 아프게 된다면,<br>절대 잃고 싶지 않은 것 하나.</h1><div class="sub">스무 글자 안쪽 · 익명 · 정답 없음</div><textarea id="t" maxlength="20" placeholder="예) 아이들 웃는 얼굴"></textarea><div class="cnt"><span id="c">0</span>/20</div><button onclick="sendText(\'q1\')">보내기</button>');bindCnt();}
- else if(cur==="q2r1"){if(did("q2r1"))return wait("🗳 투표 완료!","결과 공개를 기다려주세요.<br>앞의 <b>큰 화면</b>을 봐주세요");
-  el('<div class="banner">🗳 지금, 투표해주세요</div><h1>여러분이 김 부장입니다.<br>어떤 기둥을 희생할까요?</h1><div class="sub">하나 선택 → 아래 이유(선택) → 투표하기</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (안 적어도 됩니다)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
- else if(cur==="q2r2"){if(did("q2r2"))return wait("🗳 재투표 완료!","앞의 <b>큰 화면</b>을 봐주세요");
-  el('<div class="banner">🗳 다시 한 번 — 재투표</div><h1>치료가 계속됩니다.<br>남은 보기에서 다시 고르세요</h1><div class="sub">아까 1위였던 보기는 사라졌습니다</div>'+opts([excl-1])+'<button onclick="sendVote(\'q2r2\')">재투표하기</button>');}
+ else if(cur==="q2r1"){if(cool("q2r1"))return wait("🗳 투표 완료!","결과 공개를 기다려주세요.<br><br>잠시 후, 다시 고칠 수도 있어요<br>(마지막 선택만 반영됩니다)");
+  el('<div class="banner">'+(lastSent.q2r1?'🗳 다시 고르기 — 마지막 선택만 반영됩니다':'🗳 지금, 투표해주세요')+'</div><h1>여러분이 김 부장입니다.<br>어떤 기둥을 희생할까요?</h1><div class="sub">하나 선택 → 아래 이유(선택) → 투표하기</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (안 적어도 됩니다)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
+ else if(cur==="q2r2"){if(cool("q2r2"))return wait("🗳 재투표 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 다시 고칠 수도 있어요");
+  el('<div class="banner">'+(lastSent.q2r2?'🗳 다시 고르기 — 마지막 선택만 반영됩니다':'🗳 다시 한 번 — 재투표')+'</div><h1>치료가 계속됩니다.<br>남은 보기에서 다시 고르세요</h1><div class="sub">아까 1위였던 보기는 사라졌습니다</div>'+opts([excl-1])+'<button onclick="sendVote(\'q2r2\')">재투표하기</button>');}
  else if(cur==="q3"){if(cool("q3"))return wait("🙏 소감 감사합니다!","여러분의 문장이<br>곧 <b>큰 화면</b>에 올라갑니다<br><br>잠시 후, 한 줄 더 쓸 수 있어요");
   el('<div class="banner">'+(lastSent.q3?'✏️ 한 줄 더 쓰셔도 됩니다':'💬 마지막 — 소감 한 줄')+'</div><h1>오늘의 소감을 남겨주세요</h1><div class="sub">한글 30자 이내 · 익명 — 큰 화면에 흐릅니다</div><textarea id="t" maxlength="30" placeholder="한 줄이면 충분합니다"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q3\')">남기기</button>');bindCnt();}
  else if(cur==="q3closed"){wait("👏 오늘 고생 많으셨습니다","<b>가서, 물어보세요.</b>");}
@@ -71,12 +72,12 @@ function opts(gone){return OPTS.map(function(t,i){var g=gone.indexOf(i)>-1;
 function pick(e,i){sel=i;document.querySelectorAll(".opt").forEach(function(o){o.classList.remove("sel")});e.classList.add("sel");}
 function bindCnt(){var t=document.getElementById("t");t.addEventListener("input",function(){document.getElementById("c").textContent=t.value.length;});}
 
-function save(ph,v,r,ok,fail){db.collection('resp').add({ph:ph,v:v,r:r||'',t:Date.now()}).then(ok).catch(fail);}
+function save(ph,v,r,ok,fail){db.collection('resp').add({ph:ph,v:v,r:r||'',d:DEV,t:Date.now()}).then(ok).catch(fail);}
 function sendText(ph){if(busy)return;var v=document.getElementById("t").value.trim();if(!v)return alert("한 줄만 적어주세요");
   if(!confirm('이대로 보낼까요?\n\n「 '+v+' 」'))return;busy=true;
   save(ph,v,"",function(){busy=false;lastSent[ph]=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
 function sendVote(ph){if(busy)return;if(sel<0)return alert("보기를 먼저 선택해주세요");
-  if(!confirm('『 '+OPTS[sel]+' 』\n\n이대로 투표할까요? (투표는 한 번만 가능합니다)'))return;busy=true;
+  if(!confirm('『 '+OPTS[sel]+' 』\n\n이대로 투표할까요?'))return;busy=true;
   var rs=document.getElementById("r")?document.getElementById("r").value:"";
-  save(ph,OPTS[sel],rs,function(){busy=false;mark(ph);render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
+  save(ph,OPTS[sel],rs,function(){busy=false;lastSent[ph]=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
 </script></body></html>
