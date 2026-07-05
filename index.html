@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>7월 FP LIVE</title>
+<style>
+:root{--paper:#EFE6D3;--ink:#34302A;--muted:#8B857A;--sage:#6E8CA0;--sage-d:#5F7D8E;--card:#fff}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;padding:22px 18px 40px}
+.top{font-size:13px;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:14px}
+h1{font-size:22px;line-height:1.4;margin-bottom:6px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+textarea{width:100%;background:var(--card);border:none;border-radius:14px;padding:16px;font-size:17px;min-height:90px;box-shadow:0 4px 14px rgba(60,48,36,.08)}
+input{width:100%;background:var(--card);border:none;border-radius:12px;padding:14px 16px;font-size:15px;margin-top:10px;box-shadow:0 4px 14px rgba(60,48,36,.08)}
+.opt{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:14px;padding:16px;font-size:15.5px;line-height:1.35;margin-bottom:10px;box-shadow:0 4px 14px rgba(60,48,36,.07);border:2.5px solid transparent}
+.opt .n{flex:none;width:30px;height:30px;border-radius:50%;background:#DCE8ED;color:var(--sage-d);font-weight:800;display:grid;place-items:center;font-size:14px}
+.opt.sel{border-color:var(--sage);background:#F4F8FA}
+.opt.gone{opacity:.3;text-decoration:line-through;pointer-events:none}
+button{width:100%;margin-top:16px;background:var(--sage);color:#fff;border:none;border-radius:999px;padding:16px;font-size:17px;font-weight:800}
+button:disabled{opacity:.45}
+.wait{text-align:center;padding-top:34vh;font-size:19px;line-height:1.6;color:var(--muted)}
+.cnt{text-align:right;font-size:12px;color:var(--muted);margin-top:6px}
+</style></head><body>
+<div class="top">7월 FP LIVE · 참여코드 4821</div>
+<div id="app" class="wait">잠시만요 —<br>화면을 준비하고 있습니다</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ★ Firebase 설정 — 빌드 시 자동 주입 */
+var CFG={apiKey:'AIzaSyDPSVu5cSoPG_1JmCkfP9TXfnRevTLn9WI',projectId:'fp-live-11cc5'};
+
+firebase.initializeApp(CFG);
+var db=firebase.firestore();
+var OPTS=["내 노후를 당겨쓴다","아내가 일을 내려놓는다","자녀의 미래를 희생한다","동생에게 2천만 원 여유가 있냐고 물어본다"];
+var cur=null,excl=0,sel=-1,busy=false;
+
+/* 실시간 리스너 — 폴링 없음. 진행자가 상태를 바꿀 때만 폰이 반응 (인원 무관) */
+db.collection('live').doc('state').onSnapshot(function(doc){
+  var d=doc.exists?doc.data():{};
+  var st=d.state||'idle', ex=Number(d.excl||0);
+  if(st!==cur||ex!==excl){cur=st;excl=ex;render();}
+});
+
+function el(h){var a=document.getElementById("app");a.className="";a.innerHTML=h;}
+function wait(t){var a=document.getElementById("app");a.className="wait";a.innerHTML=t;}
+function did(k){return localStorage.getItem("fp_"+k);}
+function mark(k){localStorage.setItem("fp_"+k,"1");}
+
+function render(){sel=-1;
+ if(cur==="q1"){if(did("q1"))return wait("접수됐습니다.<br>화면을 봐주세요 👀");
+  el('<h1>내일 내가 아프게 된다면,<br>절대 잃고 싶지 않은 것 하나.</h1><div class="sub">스무 글자 안쪽 · 익명 · 정답 없음</div><textarea id="t" maxlength="20" placeholder="예) 아이들 웃는 얼굴"></textarea><div class="cnt"><span id="c">0</span>/20</div><button onclick="sendText(\'q1\')">보내기</button>');bindCnt();}
+ else if(cur==="q2r1"){if(did("q2r1"))return wait("투표 완료.<br>결과 공개를 기다려주세요");
+  el('<h1>여러분이 김 부장입니다.<br>어느 기둥에 손을 대시겠습니까</h1><div class="sub">하나 선택 + 이유 (스무 글자, 선택)</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (선택)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
+ else if(cur==="q2r2"){if(did("q2r2"))return wait("재투표 완료.<br>화면을 봐주세요");
+  el('<h1>치료가 계속됩니다.<br>남은 보기에서 다시 고르세요</h1><div class="sub">아까 1위 보기는 사라졌습니다</div>'+opts([excl-1])+'<button onclick="sendVote(\'q2r2\')">재투표하기</button>');}
+ else if(cur==="q3"){if(did("q3"))return wait("소감 감사합니다 🙏<br>화면에 곧 올라옵니다");
+  el('<h1>오늘의 소감을 남겨주세요</h1><div class="sub">한글 30자 이내 · 익명 — 화면에 흐릅니다</div><textarea id="t" maxlength="30" placeholder="한 줄이면 충분합니다"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q3\')">남기기</button>');bindCnt();}
+ else if(cur==="q3closed"){wait("오늘 고생 많으셨습니다.<br><b>가서, 물어보세요.</b>");}
+ else{wait("잠시만요 —<br>진행자가 곧 문을 엽니다");}}
+
+function opts(gone){return OPTS.map(function(t,i){var g=gone.indexOf(i)>-1;
+  return '<div class="opt'+(g?" gone":"")+'" onclick="pick(this,'+i+')"><span class="n">'+(i+1)+'</span><span>'+t+'</span></div>';}).join("");}
+function pick(e,i){sel=i;document.querySelectorAll(".opt").forEach(function(o){o.classList.remove("sel")});e.classList.add("sel");}
+function bindCnt(){var t=document.getElementById("t");t.addEventListener("input",function(){document.getElementById("c").textContent=t.value.length;});}
+
+function save(ph,v,r,ok,fail){db.collection('resp').add({ph:ph,v:v,r:r||'',t:Date.now()}).then(ok).catch(fail);}
+function sendText(ph){if(busy)return;var v=document.getElementById("t").value.trim();if(!v)return alert("한 줄만 적어주세요");busy=true;
+  save(ph,v,"",function(){busy=false;mark(ph);render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
+function sendVote(ph){if(busy)return;if(sel<0)return alert("보기를 선택해주세요");busy=true;
+  var rs=document.getElementById("r")?document.getElementById("r").value:"";
+  save(ph,OPTS[sel],rs,function(){busy=false;mark(ph);render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
+</script></body></html>
