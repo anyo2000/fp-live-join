@@ -3,25 +3,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>7월 FP LIVE</title>
 <style>
-:root{--paper:#EFE6D3;--ink:#34302A;--muted:#8B857A;--sage:#6E8CA0;--sage-d:#5F7D8E;--card:#fff}
+:root{--paper:#EFE6D3;--ink:#34302A;--muted:#8B857A;--sage:#6E8CA0;--sage-d:#5F7D8E;--card:#fff;--good:#5E9A78}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;padding:22px 18px 40px}
-.top{font-size:13px;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:14px}
-h1{font-size:22px;line-height:1.4;margin-bottom:6px}
-.sub{font-size:13px;color:var(--muted);margin-bottom:18px}
-textarea{width:100%;background:var(--card);border:none;border-radius:14px;padding:16px;font-size:17px;min-height:90px;box-shadow:0 4px 14px rgba(60,48,36,.08)}
-input{width:100%;background:var(--card);border:none;border-radius:12px;padding:14px 16px;font-size:15px;margin-top:10px;box-shadow:0 4px 14px rgba(60,48,36,.08)}
-.opt{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:14px;padding:16px;font-size:15.5px;line-height:1.35;margin-bottom:10px;box-shadow:0 4px 14px rgba(60,48,36,.07);border:2.5px solid transparent}
-.opt .n{flex:none;width:30px;height:30px;border-radius:50%;background:#DCE8ED;color:var(--sage-d);font-weight:800;display:grid;place-items:center;font-size:14px}
+body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;padding:24px 20px 44px}
+.top{font-size:15px;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:16px}
+.banner{background:var(--sage);color:#fff;font-weight:800;font-size:20px;padding:16px 18px;border-radius:16px;margin-bottom:18px;text-align:center;box-shadow:0 6px 18px rgba(110,140,160,.3)}
+h1{font-size:27px;line-height:1.42;margin-bottom:8px;word-break:keep-all}
+.sub{font-size:16px;color:var(--muted);margin-bottom:20px}
+textarea{width:100%;background:var(--card);border:3px solid var(--sage);border-radius:16px;padding:20px;font-size:22px;min-height:150px;box-shadow:0 4px 14px rgba(60,48,36,.08)}
+input{width:100%;background:var(--card);border:none;border-radius:14px;padding:18px;font-size:18px;margin-top:12px;box-shadow:0 4px 14px rgba(60,48,36,.08)}
+.opt{display:flex;gap:14px;align-items:center;background:var(--card);border-radius:16px;padding:20px 16px;font-size:19px;line-height:1.4;margin-bottom:12px;box-shadow:0 4px 14px rgba(60,48,36,.07);border:3px solid transparent;word-break:keep-all}
+.opt .n{flex:none;width:38px;height:38px;border-radius:50%;background:#DCE8ED;color:var(--sage-d);font-weight:800;display:grid;place-items:center;font-size:18px}
 .opt.sel{border-color:var(--sage);background:#F4F8FA}
+.opt.sel .n{background:var(--sage);color:#fff}
 .opt.gone{opacity:.3;text-decoration:line-through;pointer-events:none}
-button{width:100%;margin-top:16px;background:var(--sage);color:#fff;border:none;border-radius:999px;padding:16px;font-size:17px;font-weight:800}
+button{width:100%;margin-top:18px;background:var(--sage);color:#fff;border:none;border-radius:999px;padding:20px;font-size:22px;font-weight:800}
 button:disabled{opacity:.45}
-.wait{text-align:center;padding-top:34vh;font-size:19px;line-height:1.6;color:var(--muted)}
-.cnt{text-align:right;font-size:12px;color:var(--muted);margin-top:6px}
+.wait{text-align:center;padding-top:24vh}
+.wait .big{font-size:36px;font-weight:800;margin-bottom:20px}
+.wait p{font-size:20px;line-height:1.75;color:var(--muted);word-break:keep-all}
+.wait p b{color:var(--ink)}
+.cnt{text-align:right;font-size:14px;color:var(--muted);margin-top:8px}
 </style></head><body>
 <div class="top">7월 FP LIVE</div>
-<div id="app" class="wait">잠시만요 —<br>화면을 준비하고 있습니다</div>
+<div id="app" class="wait"><div class="big">📡</div><p>연결 중입니다…</p></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -34,29 +39,29 @@ var db=firebase.firestore();
 var OPTS=["내 노후를 당겨쓴다","아내가 일을 내려놓는다","자녀의 미래를 희생한다","동생에게 2천만 원 여유가 있냐고 물어본다"];
 var cur=null,excl=0,sel=-1,busy=false;
 
-/* 실시간 리스너 — 폴링 없음. 진행자가 상태를 바꿀 때만 폰이 반응 (인원 무관) */
+/* 실시간 리스너 — 진행자가 문항을 열면 즉시 화면 전환 */
 db.collection('live').doc('state').onSnapshot(function(doc){
   var d=doc.exists?doc.data():{};
   var st=d.state||'idle', ex=Number(d.excl||0);
   if(st!==cur||ex!==excl){cur=st;excl=ex;render();}
 });
 
-function el(h){var a=document.getElementById("app");a.className="";a.innerHTML=h;}
-function wait(t){var a=document.getElementById("app");a.className="wait";a.innerHTML=t;}
+function el(h){var a=document.getElementById("app");a.className="";a.innerHTML=h;window.scrollTo(0,0);}
+function wait(big,p){var a=document.getElementById("app");a.className="wait";a.innerHTML='<div class="big">'+big+'</div><p>'+p+'</p>';}
 function did(k){return localStorage.getItem("fp_"+k);}
 function mark(k){localStorage.setItem("fp_"+k,"1");}
 
 function render(){sel=-1;
- if(cur==="q1"){if(did("q1"))return wait("접수됐습니다.<br>화면을 봐주세요 👀");
-  el('<h1>내일 내가 아프게 된다면,<br>절대 잃고 싶지 않은 것 하나.</h1><div class="sub">스무 글자 안쪽 · 익명 · 정답 없음</div><textarea id="t" maxlength="20" placeholder="예) 아이들 웃는 얼굴"></textarea><div class="cnt"><span id="c">0</span>/20</div><button onclick="sendText(\'q1\')">보내기</button>');bindCnt();}
- else if(cur==="q2r1"){if(did("q2r1"))return wait("투표 완료.<br>결과 공개를 기다려주세요");
-  el('<h1>여러분이 김 부장입니다.<br>어느 기둥에 손을 대시겠습니까</h1><div class="sub">하나 선택 + 이유 (스무 글자, 선택)</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (선택)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
- else if(cur==="q2r2"){if(did("q2r2"))return wait("재투표 완료.<br>화면을 봐주세요");
-  el('<h1>치료가 계속됩니다.<br>남은 보기에서 다시 고르세요</h1><div class="sub">아까 1위 보기는 사라졌습니다</div>'+opts([excl-1])+'<button onclick="sendVote(\'q2r2\')">재투표하기</button>');}
- else if(cur==="q3"){if(did("q3"))return wait("소감 감사합니다 🙏<br>화면에 곧 올라옵니다");
-  el('<h1>오늘의 소감을 남겨주세요</h1><div class="sub">한글 30자 이내 · 익명 — 화면에 흐릅니다</div><textarea id="t" maxlength="30" placeholder="한 줄이면 충분합니다"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q3\')">남기기</button>');bindCnt();}
- else if(cur==="q3closed"){wait("오늘 고생 많으셨습니다.<br><b>가서, 물어보세요.</b>");}
- else{wait("잠시만요 —<br>진행자가 곧 문을 엽니다");}}
+ if(cur==="q1"){if(did("q1"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요");
+  el('<div class="banner">📝 지금, 입력해주세요</div><h1>내일 내가 아프게 된다면,<br>절대 잃고 싶지 않은 것 하나.</h1><div class="sub">스무 글자 안쪽 · 익명 · 정답 없음</div><textarea id="t" maxlength="20" placeholder="예) 아이들 웃는 얼굴"></textarea><div class="cnt"><span id="c">0</span>/20</div><button onclick="sendText(\'q1\')">보내기</button>');bindCnt();}
+ else if(cur==="q2r1"){if(did("q2r1"))return wait("🗳 투표 완료!","결과 공개를 기다려주세요.<br>앞의 <b>큰 화면</b>을 봐주세요");
+  el('<div class="banner">🗳 지금, 투표해주세요</div><h1>여러분이 김 부장입니다.<br>어느 기둥에 손을 대시겠습니까</h1><div class="sub">하나 선택 → 아래 이유(선택) → 투표하기</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (안 적어도 됩니다)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
+ else if(cur==="q2r2"){if(did("q2r2"))return wait("🗳 재투표 완료!","앞의 <b>큰 화면</b>을 봐주세요");
+  el('<div class="banner">🗳 다시 한 번 — 재투표</div><h1>치료가 계속됩니다.<br>남은 보기에서 다시 고르세요</h1><div class="sub">아까 1위였던 보기는 사라졌습니다</div>'+opts([excl-1])+'<button onclick="sendVote(\'q2r2\')">재투표하기</button>');}
+ else if(cur==="q3"){if(did("q3"))return wait("🙏 소감 감사합니다!","여러분의 문장이<br>곧 <b>큰 화면</b>에 올라갑니다");
+  el('<div class="banner">💬 마지막 — 소감 한 줄</div><h1>오늘의 소감을 남겨주세요</h1><div class="sub">한글 30자 이내 · 익명 — 큰 화면에 흐릅니다</div><textarea id="t" maxlength="30" placeholder="한 줄이면 충분합니다"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q3\')">남기기</button>');bindCnt();}
+ else if(cur==="q3closed"){wait("👏 오늘 고생 많으셨습니다","<b>가서, 물어보세요.</b>");}
+ else{wait("👋 입장 완료!","잘 들어오셨습니다.<br>교육이 시작되면 이 화면이<br><b>저절로 바뀝니다.</b><br><br>화면을 끄지 말고<br>잠시만 기다려주세요.");}}
 
 function opts(gone){return OPTS.map(function(t,i){var g=gone.indexOf(i)>-1;
   return '<div class="opt'+(g?" gone":"")+'" onclick="pick(this,'+i+')"><span class="n">'+(i+1)+'</span><span>'+t+'</span></div>';}).join("");}
@@ -66,7 +71,7 @@ function bindCnt(){var t=document.getElementById("t");t.addEventListener("input"
 function save(ph,v,r,ok,fail){db.collection('resp').add({ph:ph,v:v,r:r||'',t:Date.now()}).then(ok).catch(fail);}
 function sendText(ph){if(busy)return;var v=document.getElementById("t").value.trim();if(!v)return alert("한 줄만 적어주세요");busy=true;
   save(ph,v,"",function(){busy=false;mark(ph);render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
-function sendVote(ph){if(busy)return;if(sel<0)return alert("보기를 선택해주세요");busy=true;
+function sendVote(ph){if(busy)return;if(sel<0)return alert("보기를 먼저 선택해주세요");busy=true;
   var rs=document.getElementById("r")?document.getElementById("r").value:"";
   save(ph,OPTS[sel],rs,function(){busy=false;mark(ph);render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
 </script></body></html>
