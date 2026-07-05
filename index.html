@@ -43,6 +43,7 @@ var cur=null,excl=0,sel=-1,busy=false,lastSent={},reTimer=null;
 db.collection('live').doc('state').onSnapshot(function(doc){
   var d=doc.exists?doc.data():{};
   var st=d.state||'idle', ex=Number(d.excl||0);
+  if(st==='idle'){try{Object.keys(localStorage).forEach(function(k){if(k.indexOf('fp_')===0)localStorage.removeItem(k);});}catch(e){}lastSent={};}
   if(st!==cur||ex!==excl){cur=st;excl=ex;render();}
 });
 
@@ -57,7 +58,7 @@ function render(){sel=-1;
  if(cur==="q1"){if(cool("q1"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 한 개 더 쓸 수 있어요");
   el('<div class="banner">'+(lastSent.q1?'✏️ 한 개 더 쓰셔도 됩니다':'📝 지금, 입력해주세요')+'</div><h1>내일 내가 아프게 된다면,<br>절대 잃고 싶지 않은 것 하나.</h1><div class="sub">스무 글자 안쪽 · 익명 · 정답 없음</div><textarea id="t" maxlength="20" placeholder="예) 아이들 웃는 얼굴"></textarea><div class="cnt"><span id="c">0</span>/20</div><button onclick="sendText(\'q1\')">보내기</button>');bindCnt();}
  else if(cur==="q2r1"){if(did("q2r1"))return wait("🗳 투표 완료!","결과 공개를 기다려주세요.<br>앞의 <b>큰 화면</b>을 봐주세요");
-  el('<div class="banner">🗳 지금, 투표해주세요</div><h1>여러분이 김 부장입니다.<br>어느 기둥에 손을 대시겠습니까</h1><div class="sub">하나 선택 → 아래 이유(선택) → 투표하기</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (안 적어도 됩니다)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
+  el('<div class="banner">🗳 지금, 투표해주세요</div><h1>여러분이 김 부장입니다.<br>어떤 기둥을 희생할까요?</h1><div class="sub">하나 선택 → 아래 이유(선택) → 투표하기</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (안 적어도 됩니다)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
  else if(cur==="q2r2"){if(did("q2r2"))return wait("🗳 재투표 완료!","앞의 <b>큰 화면</b>을 봐주세요");
   el('<div class="banner">🗳 다시 한 번 — 재투표</div><h1>치료가 계속됩니다.<br>남은 보기에서 다시 고르세요</h1><div class="sub">아까 1위였던 보기는 사라졌습니다</div>'+opts([excl-1])+'<button onclick="sendVote(\'q2r2\')">재투표하기</button>');}
  else if(cur==="q3"){if(cool("q3"))return wait("🙏 소감 감사합니다!","여러분의 문장이<br>곧 <b>큰 화면</b>에 올라갑니다<br><br>잠시 후, 한 줄 더 쓸 수 있어요");
