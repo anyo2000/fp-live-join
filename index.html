@@ -57,7 +57,9 @@ function cool(k){if(!lastSent[k])return false;var left=10000-(Date.now()-lastSen
 function mark(k){localStorage.setItem("fp_"+k,"1");}
 
 function render(){sel=-1;
- if(cur==="q1"){if(cool("q1"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 한 개 더 쓸 수 있어요");
+ if(cur==="q0"){if(cool("q0"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 한 개 더 쓸 수 있어요");
+  el('<div class="banner">'+(lastSent.q0?'✏️ 한 개 더 쓰셔도 됩니다':'📝 지금, 입력해주세요')+'</div><h1>오늘 교육에서<br>바라는 점은?</h1><div class="sub">한 줄 · 익명 · 정답 없음</div><textarea id="t" maxlength="30" placeholder="예) 실전에서 바로 쓸 화법"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q0\')">보내기</button>');bindCnt();}
+ else if(cur==="q1"){if(cool("q1"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 한 개 더 쓸 수 있어요");
   el('<div class="banner">'+(lastSent.q1?'✏️ 한 개 더 쓰셔도 됩니다':'📝 지금, 입력해주세요')+'</div><h1>내일 내가 아프게 된다면,<br>절대 잃고 싶지 않은 것 하나.</h1><div class="sub">스무 글자 안쪽 · 익명 · 정답 없음</div><textarea id="t" maxlength="20" placeholder="예) 아이들 웃는 얼굴"></textarea><div class="cnt"><span id="c">0</span>/20</div><button onclick="sendText(\'q1\')">보내기</button>');bindCnt();}
  else if(cur==="q2r1"){if(cool("q2r1"))return wait("🗳 투표 완료!","결과 공개를 기다려주세요.<br><br>잠시 후, 다시 고칠 수도 있어요<br>(마지막 선택만 반영됩니다)");
   el('<div class="banner">'+(lastSent.q2r1?'🗳 다시 고르기 — 마지막 선택만 반영됩니다':'🗳 지금, 투표해주세요')+'</div><h1>여러분이 김 부장입니다.<br>어떤 기둥을 희생할까요?</h1><div class="sub">하나 선택 → 아래 이유(선택) → 투표하기</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (안 적어도 됩니다)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
