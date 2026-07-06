@@ -17,6 +17,9 @@ input{width:100%;background:var(--card);border:none;border-radius:14px;padding:1
 .opt.sel{border-color:var(--sage);background:#F4F8FA}
 .opt.sel .n{background:var(--sage);color:#fff}
 .opt.gone{opacity:.3;text-decoration:line-through;pointer-events:none}
+.wbtn{border-radius:18px;padding:24px 18px;font-size:22px;font-weight:800;margin-bottom:14px;text-align:center;
+  box-shadow:0 4px 14px rgba(60,48,36,.12);word-break:keep-all;transition:transform .12s}
+.wbtn:active{transform:scale(.95)}
 button{width:100%;margin-top:18px;background:var(--sage);color:#fff;border:none;border-radius:999px;padding:20px;font-size:22px;font-weight:800}
 button:disabled{opacity:.45}
 .wait{text-align:center;padding-top:24vh}
@@ -38,6 +41,8 @@ firebase.initializeApp(CFG);
 var db=firebase.firestore();
 var OPTS=["내 노후를 당겨쓴다","아내가 일을 내려놓는다","자녀의 미래를 희생한다","동생에게 2천만 원 여유가 있냐고 물어본다"];
 var OPTS4=["암진단비","암진단및치료비","암복합생활비","비급여암복합생활비","간병인사용입원생활비"];
+var WOPTS=["돈이 없어서","안 걸릴 것 같아서","나중에 하려고","고민만 하다가","보험이 싫어서","이미 있는 줄 알아서"];
+var WCOL=[["#F4E3DD","#9C4A38"],["#DCE8ED","#40606F"],["#F7EFD8","#8A6F14"],["#E4EFE7","#3F6E52"],["#E9E2F0","#5B4A78"],["#EDE4CF","#7A6A4F"]];
 var cur=null,excl=0,sel=-1,busy=false,lastSent={},reTimer=null;
 var DEV=localStorage.getItem('fpdev');if(!DEV){DEV=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('fpdev',DEV);}
 
@@ -57,10 +62,12 @@ function cool(k){if(!lastSent[k])return false;var left=10000-(Date.now()-lastSen
 function mark(k){localStorage.setItem("fp_"+k,"1");}
 
 function render(){sel=-1;
- if(cur==="q0"){if(cool("q0"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 한 개 더 쓸 수 있어요");
-  el('<div class="banner">'+(lastSent.q0?'✏️ 한 개 더 쓰셔도 됩니다':'📝 지금, 입력해주세요')+'</div><h1>오늘 교육에서<br>바라는 점은?</h1><div class="sub">한 줄 · 익명 · 정답 없음</div><textarea id="t" maxlength="30" placeholder="예) 실전에서 바로 쓸 화법"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q0\')">보내기</button>');bindCnt();}
+ if(cur==="qw"){if(cool("qw"))return wait("🎈 접수!","앞의 <b>큰 화면</b>에서<br>여러분의 답이 <b>부풀어 오릅니다</b><br><br>잠시 후, 다시 고를 수도 있어요<br>(마지막 선택만 반영됩니다)");
+  el('<div class="banner">'+(lastSent.qw?'🎈 다시 고르기 — 마지막 선택만 반영됩니다':'🎈 버튼 하나만 — 누르면 바로 접수')+'</div><h1>고객들은 왜, 알면서<br>바로 가입하지 않을까?</h1><div class="sub">경험에서 나온 솔직한 답 하나 — 탭하면 끝</div>'+WOPTS.map(function(t,i){return '<div class="wbtn" style="background:'+WCOL[i][0]+';color:'+WCOL[i][1]+'" onclick="sendW('+i+')">'+t+'</div>';}).join(''));}
+ else if(cur==="q0"){if(cool("q0"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 한 개 더 쓸 수 있어요");
+  el('<div class="banner">'+(lastSent.q0?'✏️ 한 개 더 쓰셔도 됩니다':'📝 지금, 입력해주세요')+'</div><h1>오늘 교육에서<br>바라는 점은?</h1><div class="sub">한 줄 · 익명 · 정답 없음</div><textarea id="t" maxlength="30"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q0\')">보내기</button>');bindCnt();}
  else if(cur==="q1"){if(cool("q1"))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 한 개 더 쓸 수 있어요");
-  el('<div class="banner">'+(lastSent.q1?'✏️ 한 개 더 쓰셔도 됩니다':'📝 지금, 입력해주세요')+'</div><h1>내일 내가 아프게 된다면,<br>절대 잃고 싶지 않은 것 하나.</h1><div class="sub">스무 글자 안쪽 · 익명 · 정답 없음</div><textarea id="t" maxlength="20" placeholder="예) 아이들 웃는 얼굴"></textarea><div class="cnt"><span id="c">0</span>/20</div><button onclick="sendText(\'q1\')">보내기</button>');bindCnt();}
+  el('<div class="banner">'+(lastSent.q1?'✏️ 한 개 더 쓰셔도 됩니다':'📝 지금, 입력해주세요')+'</div><h1>내일 내가 아프게 된다면,<br>절대 잃고 싶지 않은 것 하나.</h1><div class="sub">스무 글자 안쪽 · 익명 · 정답 없음</div><textarea id="t" maxlength="20"></textarea><div class="cnt"><span id="c">0</span>/20</div><button onclick="sendText(\'q1\')">보내기</button>');bindCnt();}
  else if(cur==="q2r1"){if(cool("q2r1"))return wait("🗳 투표 완료!","결과 공개를 기다려주세요.<br><br>잠시 후, 다시 고칠 수도 있어요<br>(마지막 선택만 반영됩니다)");
   el('<div class="banner">'+(lastSent.q2r1?'🗳 다시 고르기 — 마지막 선택만 반영됩니다':'🗳 지금, 투표해주세요')+'</div><h1>여러분이 김 부장입니다.<br>어떤 기둥을 희생할까요?</h1><div class="sub">하나 선택 → 아래 이유(선택) → 투표하기</div>'+opts([])+'<input id="r" maxlength="20" placeholder="이유 (안 적어도 됩니다)"><button onclick="sendVote(\'q2r1\')">투표하기</button>');}
  else if(cur==="q2r2"){if(cool("q2r2"))return wait("🗳 재투표 완료!","앞의 <b>큰 화면</b>을 봐주세요<br><br>잠시 후, 다시 고칠 수도 있어요");
@@ -68,7 +75,7 @@ function render(){sel=-1;
  else if(cur==="q4"){if(cool("q4"))return wait("🗳 투표 완료!","결과 공개를 기다려주세요.<br><br>잠시 후, 다시 고칠 수도 있어요<br>(마지막 선택만 반영됩니다)");
   el('<div class="banner">'+(lastSent.q4?'🗳 다시 고르기 — 마지막 선택만 반영됩니다':'🗳 지금, 투표해주세요')+'</div><h1>만약 이분이 아직<br>암에 걸리지 않았다면 —<br>어떤 보장을 권하시겠습니까?</h1><div class="sub">하나 선택 → 투표하기</div>'+opts([],OPTS4)+'<button onclick="sendVote(\'q4\')">투표하기</button>');}
  else if(cur==="q3"){if(cool("q3"))return wait("🙏 소감 감사합니다!","여러분의 문장이<br>곧 <b>큰 화면</b>에 올라갑니다<br><br>잠시 후, 한 줄 더 쓸 수 있어요");
-  el('<div class="banner">'+(lastSent.q3?'✏️ 한 줄 더 쓰셔도 됩니다':'💬 마지막 — 소감 한 줄')+'</div><h1>오늘의 소감을 남겨주세요</h1><div class="sub">한글 30자 이내 · 익명 — 큰 화면에 흐릅니다</div><textarea id="t" maxlength="30" placeholder="한 줄이면 충분합니다"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q3\')">남기기</button>');bindCnt();}
+  el('<div class="banner">'+(lastSent.q3?'✏️ 한 줄 더 쓰셔도 됩니다':'💬 마지막 — 소감 한 줄')+'</div><h1>오늘의 소감을 남겨주세요</h1><div class="sub">한글 30자 이내 · 익명 — 큰 화면에 흐릅니다</div><textarea id="t" maxlength="30"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText(\'q3\')">남기기</button>');bindCnt();}
  else if(cur==="q3closed"){wait("👏 오늘 고생 많으셨습니다","<b>가서, 물어보세요.</b>");}
  else{if(localStorage.getItem("fp_done")||/closed$/.test(cur||""))wait("🎓 강의 중입니다","지금은 강의가 진행 중입니다.<br><b>앞의 강의 화면을 봐주세요.</b><br><br>다음 참여 순서가 되면<br>이 화면이 <b>저절로 바뀝니다.</b>");
   else wait("👋 환영합니다!","잘 들어오셨습니다.<br>교육이 시작되면 이 화면이<br><b>저절로 바뀝니다.</b><br><br>화면을 끄지 말고<br>잠시, 진행을 기다려주세요.");}}
@@ -82,6 +89,8 @@ function save(ph,v,r,ok,fail){db.collection('resp').add({ph:ph,v:v,r:r||'',d:DEV
 function sendText(ph){if(busy)return;var v=document.getElementById("t").value.trim();if(!v)return alert("한 줄만 적어주세요");
   if(!confirm('이대로 보낼까요?\n\n「 '+v+' 」'))return;busy=true;
   save(ph,v,"",function(){busy=false;lastSent[ph]=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
+function sendW(i){if(busy)return;busy=true;
+  save("qw",WOPTS[i],"",function(){busy=false;lastSent.qw=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
 function sendVote(ph){if(busy)return;if(sel<0)return alert("보기를 먼저 선택해주세요");
   var list=ph==="q4"?OPTS4:OPTS;
   if(!confirm('『 '+list[sel]+' 』\n\n이대로 투표할까요?'))return;busy=true;
