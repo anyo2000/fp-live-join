@@ -38,6 +38,11 @@ var CFG={apiKey:'AIzaSyDPSVu5cSoPG_1JmCkfP9TXfnRevTLn9WI',projectId:'fp-live-11c
 
 firebase.initializeApp(CFG);
 var db=firebase.firestore();
+/* 방(room): 진행자가 나눠준 QR/링크의 ?room=<지점> 값. 없으면 기본 방. 방마다 완전히 분리됨. */
+var ROOM=(new URLSearchParams(location.search).get('room')||'메인');
+var RSTATE=db.doc('rooms/'+ROOM);          // 상태 문서(진행자가 여닫는 화면)
+var RRESP=db.collection('rooms/'+ROOM+'/resp');  // 이 방의 답변
+try{document.querySelector('.top').textContent='7월 FP LIVE · '+ROOM;}catch(e){}
 var OPTS=["내 노후를 당겨쓴다","아내가 일을 내려놓는다","자녀의 미래를 희생한다","동생에게 2천만 원 여유가 있냐고 물어본다"];
 var OPTS4=["암진단비","암진단및치료비","암복합생활비","비급여암복합생활비","간병인사용입원생활비"];
 var WOPTS=["돈이 없어서","안 걸릴 것 같아서","나중에 하려고","고민만 하다가","보험이 싫어서","이미 있는 줄 알아서"];
@@ -46,7 +51,7 @@ var cur=null,excl=0,sel=-1,busy=false,lastSent={},reTimer=null;
 var DEV=localStorage.getItem('fpdev');if(!DEV){DEV=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('fpdev',DEV);}
 
 /* 실시간 리스너 — 진행자가 문항을 열면 즉시 화면 전환 */
-db.collection('live').doc('state').onSnapshot(function(doc){
+RSTATE.onSnapshot(function(doc){
   var d=doc.exists?doc.data():{};
   var st=d.state||'idle', ex=Number(d.excl||0);
   if(st==='idle'){try{Object.keys(localStorage).forEach(function(k){if(k.indexOf('fp_')===0)localStorage.removeItem(k);});}catch(e){}lastSent={};}
@@ -84,7 +89,7 @@ function opts(gone,list){return (list||OPTS).map(function(t,i){var g=gone.indexO
 function pick(e,i){sel=i;document.querySelectorAll(".opt").forEach(function(o){o.classList.remove("sel")});e.classList.add("sel");}
 function bindCnt(){var t=document.getElementById("t");t.addEventListener("input",function(){document.getElementById("c").textContent=t.value.length;});}
 
-function save(ph,v,r,ok,fail){db.collection('resp').add({ph:ph,v:v,r:r||'',d:DEV,t:Date.now()}).then(function(){try{localStorage.setItem('fp_done','1')}catch(e){}ok();}).catch(fail);}
+function save(ph,v,r,ok,fail){RRESP.add({ph:ph,v:v,r:r||'',d:DEV,t:Date.now()}).then(function(){try{localStorage.setItem('fp_done','1')}catch(e){}ok();}).catch(fail);}
 function sendText(ph){if(busy)return;var v=document.getElementById("t").value.trim();if(!v)return alert("한 줄만 적어주세요");
   if(!confirm('이대로 보낼까요?\n\n「 '+v+' 」'))return;busy=true;
   save(ph,v,"",function(){busy=false;lastSent[ph]=Date.now();render();},function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
