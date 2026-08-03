@@ -99,6 +99,7 @@ function join(){if(busy)return;
 
 function sendVote(){if(busy)return;if(sel<0)return alert("보기를 먼저 선택해주세요");
   var q=TITLES[cur];if(!q)return;
+  if(!confirm('『 '+q.o[sel]+' 』\n\n이대로 투표할까요?'))return;
   busy=true;var ph=cur;
   RRESP.add({ph:ph,v:q.o[sel],r:meTag(),d:DEV,t:Date.now()}).then(function(){
     busy=false;lastSent[ph]=Date.now();render();
