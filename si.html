@@ -11,6 +11,8 @@ h1{font-size:26px;line-height:1.42;margin-bottom:8px;word-break:keep-all;font-we
 h1 em{font-style:normal;color:var(--accent)}
 .sub{font-size:16px;color:var(--mute);margin-bottom:20px;word-break:keep-all}
 input{width:100%;background:var(--card);border:none;border-radius:16px;padding:18px;font-size:19px;margin-top:12px;box-shadow:0 4px 14px rgba(32,48,26,.08)}
+textarea{width:100%;background:var(--card);border:3px solid var(--accent);border-radius:16px;padding:20px;font-size:21px;min-height:140px;box-shadow:0 4px 14px rgba(32,48,26,.08)}
+.cnt{text-align:right;font-size:14px;color:var(--mute);margin-top:8px}
 .opt{display:flex;gap:14px;align-items:center;background:var(--card);border-radius:18px;padding:20px 16px;font-size:20px;font-weight:700;line-height:1.4;margin-bottom:12px;box-shadow:0 4px 14px rgba(32,48,26,.07);border:3px solid transparent;word-break:keep-all}
 .opt .n{flex:none;width:38px;height:38px;border-radius:50%;background:var(--sage);color:var(--ink);font-weight:800;display:grid;place-items:center;font-size:17px}
 .opt.sel{border-color:var(--accent);background:var(--lime-pale)}
@@ -44,6 +46,10 @@ var BRANCHES=['합정','홍대','신촌','마포','기타'];
 var Q1=['20% 이하','20~40%','40~60%','60~80%'];
 var Q2=['최근 3개월','입원·수술','중대질환'];
 var Q3=['345','355','365','아직 모른다'];
+var TEXTQ={
+ q0:{h:'오늘 강의에서<br><em>기대하는 점</em>은?',s:'한 줄 · 30자 이내 — 🎁 50번째로 입력하신 분께 선물!',btn:'보내기'},
+ fin:{h:'오늘의 <em>소감</em>을 남겨주세요',s:'한 줄 · 30자 이내 — 큰 화면에 흐릅니다',btn:'남기기'},
+};
 var TITLES={
  q1:{h:'여러분의 환산성적,<br>몇 %가 <em>유병자</em>입니까?',s:'솔직하게 — 하나 선택 후 투표',o:Q1},
  q2:{h:'세 가지 질문,<br><em>뭐부터</em> 물을까요?',s:'하나 선택 후 투표',o:Q2},
@@ -74,6 +80,11 @@ function render(){sel=-1;
    +'<input id="nm" maxlength="10" placeholder="이름">'
    +'<button onclick="join()">입장하기</button>');
   return;}
+ var tq=TEXTQ[cur];
+ if(tq){if(cool(cur))return wait("✅ 접수 완료!","앞의 <b>큰 화면</b>을 봐주세요.<br><br>잠시 후, 한 줄 더 쓸 수 있어요");
+  el('<h1>'+tq.h+'</h1><div class="sub">'+tq.s+'</div><textarea id="t" maxlength="30"></textarea><div class="cnt"><span id="c">0</span>/30</div><button onclick="sendText()">'+tq.btn+'</button>');
+  var t=document.getElementById("t");t.addEventListener("input",function(){document.getElementById("c").textContent=t.value.length;});
+  return;}
  var q=TITLES[cur];
  if(q){if(cool(cur))return wait("🗳 투표 완료!","앞의 <b>큰 화면</b>을 봐주세요.<br><br>잠시 후, 다시 고칠 수도 있어요<br>(마지막 선택만 반영됩니다)");
   el('<h1>'+q.h+'</h1><div class="sub">'+q.s+'</div>'
@@ -97,6 +108,11 @@ function join(){if(busy)return;
     busy=false;ME={br:br,nm:nm};localStorage.setItem('fpme',JSON.stringify(ME));render();
   }).catch(function(){busy=false;alert('전송 실패 — 한 번만 다시 눌러주세요');});}
 
+function sendText(){if(busy)return;var v=document.getElementById("t").value.trim();if(!v)return alert("한 줄만 적어주세요");
+  if(!confirm('이대로 보낼까요?\n\n「 '+v+' 」'))return;busy=true;var ph=cur;
+  RRESP.add({ph:ph,v:v.slice(0,30),r:meTag(),d:DEV,t:Date.now()}).then(function(){
+    busy=false;lastSent[ph]=Date.now();render();
+  }).catch(function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
 function sendVote(){if(busy)return;if(sel<0)return alert("보기를 먼저 선택해주세요");
   var q=TITLES[cur];if(!q)return;
   if(!confirm('『 '+q.o[sel]+' 』\n\n이대로 투표할까요?'))return;
