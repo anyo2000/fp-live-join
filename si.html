@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>8월 합정 SI</title>
+<style>
+:root{--lime:#9fe870;--lime-pale:#e2f6d5;--sage:#e8ebe6;--dark:#163300;--ink:#20301a;--accent:#3e7d24;--body:#565c52;--mute:#8b9186;--card:#fff}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Pretendard","Apple SD Gothic Neo",sans-serif;background:var(--sage);color:var(--ink);min-height:100vh;padding:24px 20px 44px;-webkit-font-smoothing:antialiased}
+.top{font-size:15px;letter-spacing:.1em;color:var(--mute);font-weight:800;margin-bottom:16px}
+h1{font-size:26px;line-height:1.42;margin-bottom:8px;word-break:keep-all;font-weight:800}
+h1 em{font-style:normal;color:var(--accent)}
+.sub{font-size:16px;color:var(--mute);margin-bottom:20px;word-break:keep-all}
+input{width:100%;background:var(--card);border:none;border-radius:16px;padding:18px;font-size:19px;margin-top:12px;box-shadow:0 4px 14px rgba(32,48,26,.08)}
+.opt{display:flex;gap:14px;align-items:center;background:var(--card);border-radius:18px;padding:20px 16px;font-size:20px;font-weight:700;line-height:1.4;margin-bottom:12px;box-shadow:0 4px 14px rgba(32,48,26,.07);border:3px solid transparent;word-break:keep-all}
+.opt .n{flex:none;width:38px;height:38px;border-radius:50%;background:var(--sage);color:var(--ink);font-weight:800;display:grid;place-items:center;font-size:17px}
+.opt.sel{border-color:var(--accent);background:var(--lime-pale)}
+.opt.sel .n{background:var(--dark);color:var(--lime)}
+.brbtn{display:inline-block;background:var(--card);border-radius:999px;padding:14px 22px;font-size:18px;font-weight:800;margin:0 8px 12px 0;box-shadow:0 4px 12px rgba(32,48,26,.08);border:3px solid transparent}
+.brbtn.sel{border-color:var(--accent);background:var(--lime-pale)}
+button{width:100%;margin-top:18px;background:var(--dark);color:var(--lime);border:none;border-radius:999px;padding:20px;font-size:21px;font-weight:800;position:sticky;bottom:14px;z-index:5;box-shadow:0 8px 22px rgba(22,51,0,.3)}
+button:disabled{opacity:.45}
+.wait{text-align:center;padding-top:22vh}
+.wait .big{font-size:34px;font-weight:900;margin-bottom:20px}
+.wait p{font-size:19px;line-height:1.75;color:var(--body);word-break:keep-all}
+.wait p b{color:var(--ink)}
+</style></head><body>
+<div class="top">8월 합정 SI</div>
+<div id="app" class="wait"><div class="big">👋 환영합니다!</div><p>잠시만요…</p></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ★ Firebase 설정 — 7월 fp-live 프로젝트 재사용 */
+var CFG={apiKey:'AIzaSyDPSVu5cSoPG_1JmCkfP9TXfnRevTLn9WI',projectId:'fp-live-11cc5'};
+firebase.initializeApp(CFG);
+var db=firebase.firestore();
+var ROOM=(new URLSearchParams(location.search).get('room')||'합정SI');
+var RSTATE=db.doc('rooms/'+ROOM);
+var RRESP=db.collection('rooms/'+ROOM+'/resp');
+
+/* ★ 지점 목록 — 실제 참석 지점으로 교체 후 배포 */
+var BRANCHES=['합정','홍대','신촌','마포','기타'];
+
+var Q1=['20% 이하','20~40%','40~60%','60~80%'];
+var Q2=['최근 3개월','입원·수술','중대질환'];
+var Q3=['345','355','365','아직 모른다'];
+var TITLES={
+ q1:{h:'여러분의 환산성적,<br>몇 %가 <em>유병자</em>입니까?',s:'솔직하게 — 하나 선택 후 투표',o:Q1},
+ q2:{h:'세 가지 질문,<br><em>뭐부터</em> 물을까요?',s:'하나 선택 후 투표',o:Q2},
+ q3:{h:'2020년 3월 허리 수술, 한 달 입원 —<br>이 고객, <em>어디에</em> 가입할 수 있을까요?',s:'청약일 2026년 8월 기준',o:Q3},
+};
+var cur=null,sel=-1,busy=false,lastSent={},reTimer=null;
+var DEV=localStorage.getItem('fpdev');if(!DEV){DEV=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('fpdev',DEV);}
+var ME=null;try{ME=JSON.parse(localStorage.getItem('fpme')||'null');}catch(e){}
+var selBr=null;
+
+RSTATE.onSnapshot(function(doc){
+  var d=doc.exists?doc.data():{};
+  var st=d.state||'idle';
+  if(st==='idle'){lastSent={};}
+  if(st!==cur){cur=st;render();}
+});
+
+function el(h){var a=document.getElementById("app");a.className="";a.innerHTML=h;window.scrollTo(0,0);}
+function wait(big,p){var a=document.getElementById("app");a.className="wait";a.innerHTML='<div class="big">'+big+'</div><p>'+p+'</p>';}
+function cool(k){if(!lastSent[k])return false;var left=10000-(Date.now()-lastSent[k]);
+  if(left<=0)return false;clearTimeout(reTimer);reTimer=setTimeout(render,left+200);return true;}
+function meTag(){return ME?(ME.br+'|'+ME.nm).slice(0,40):'';}
+
+function render(){sel=-1;
+ if(!ME){ // 입장 — 지점 + 이름
+  el('<h1>어서 오세요!</h1><div class="sub">지점을 고르고, 이름을 적어주세요.<br>몇 분 오셨는지 확인하는 용도입니다.</div>'
+   +'<div id="brs">'+BRANCHES.map(function(b,i){return '<span class="brbtn" onclick="pickBr(this,'+i+')">'+b+'</span>';}).join('')+'</div>'
+   +'<input id="nm" maxlength="10" placeholder="이름">'
+   +'<button onclick="join()">입장하기</button>');
+  return;}
+ var q=TITLES[cur];
+ if(q){if(cool(cur))return wait("🗳 투표 완료!","앞의 <b>큰 화면</b>을 봐주세요.<br><br>잠시 후, 다시 고칠 수도 있어요<br>(마지막 선택만 반영됩니다)");
+  el('<h1>'+q.h+'</h1><div class="sub">'+q.s+'</div>'
+   +q.o.map(function(t,i){return '<div class="opt" onclick="pick(this,'+i+')"><span class="n">'+(i+1)+'</span><span>'+t+'</span></div>';}).join('')
+   +'<button onclick="sendVote()">투표하기</button>');}
+ else if(/closed$/.test(cur||'')){wait("🎓 강의 중입니다","앞의 강의 화면을 봐주세요.<br><br>다음 참여 순서가 되면<br>이 화면이 <b>저절로 바뀝니다.</b>");}
+ else{wait("👋 "+ME.nm+"님, 환영합니다!","입장 완료 — "+ME.br+"<br><br>교육이 시작되면 이 화면이<br><b>저절로 바뀝니다.</b><br>화면을 끄지 말고 기다려주세요.");}}
+
+function pickBr(e,i){selBr=BRANCHES[i];document.querySelectorAll('.brbtn').forEach(function(o){o.classList.remove('sel')});e.classList.add('sel');
+  if(selBr==='기타'){var n=document.getElementById('nm');if(!document.getElementById('brx')){var x=document.createElement('input');x.id='brx';x.maxLength=10;x.placeholder='지점명 직접 입력';n.parentNode.insertBefore(x,n);}}
+  else{var x=document.getElementById('brx');if(x)x.remove();}}
+function pick(e,i){sel=i;document.querySelectorAll(".opt").forEach(function(o){o.classList.remove("sel")});e.classList.add("sel");}
+
+function join(){if(busy)return;
+  var nm=document.getElementById('nm').value.trim();
+  var br=selBr==='기타'?(document.getElementById('brx')?document.getElementById('brx').value.trim():''):selBr;
+  if(!br)return alert('지점을 골라주세요');
+  if(!nm)return alert('이름을 적어주세요');
+  busy=true;
+  RRESP.add({ph:'join',v:nm.slice(0,20),r:br.slice(0,20),d:DEV,t:Date.now()}).then(function(){
+    busy=false;ME={br:br,nm:nm};localStorage.setItem('fpme',JSON.stringify(ME));render();
+  }).catch(function(){busy=false;alert('전송 실패 — 한 번만 다시 눌러주세요');});}
+
+function sendVote(){if(busy)return;if(sel<0)return alert("보기를 먼저 선택해주세요");
+  var q=TITLES[cur];if(!q)return;
+  busy=true;var ph=cur;
+  RRESP.add({ph:ph,v:q.o[sel],r:meTag(),d:DEV,t:Date.now()}).then(function(){
+    busy=false;lastSent[ph]=Date.now();render();
+  }).catch(function(){busy=false;alert("전송 실패 — 한 번만 다시 눌러주세요");});}
+</script></body></html>
