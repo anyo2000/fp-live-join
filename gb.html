@@ -41,7 +41,7 @@ var RSTATE=db.doc('rooms/'+ROOM);
 var RRESP=db.collection('rooms/'+ROOM+'/resp');
 
 // ★ 지점 목록 — 덱 BR 배열과 반드시 동일 순서·동일 표기
-var BRANCHES=['인천','부평','계양','송도','주안','기타'];
+var BRANCHES=['인천','주안','신주안','송도','퍼스트SFP','기타'];
 // 문항 보기 — 덱 PAGES와 반드시 같은 텍스트 (수정 시 양쪽 함께)
 var QMAP={
  q7:{h:'홈앤라이프 <em>출시일</em>은?',o:['8월 1일','8월 2일','8월 3일','기타']},
@@ -51,7 +51,7 @@ var QMAP={
  q18:{h:'비데는 32대 가전제품 수리비 담보에서<br><em>보장받을 수 있다</em>',o:['O','X']},
  q20:{h:'신담보 기후성질환진단비 —<br><em>온열질환 지급금액</em>은?',o:['연 1회 10만원','최초 1회 10만원','연 1회 20만원','최초 1회 20만원']},
  q23:{h:"홈앤라이프 '다섯 시(時)'에<br><em>포함되지 않는</em> 것은?",o:['재난 시','고장 시','소송 시','운전 시']},
- q26:{h:'교통사고로 5년 내 20일 입원했던 고객이<br><em>암보험</em>을 가입한다면?',o:['더경증 가입가능','시그니처간편 가입가능','3N5 가입가능','가입불가']},
+ q26:{h:'교통사고로 5년 내 20일 입원했던 고객이<br><em>암보험 가장 저렴하게</em> 하려면?',o:['더경증 가입','시그니처간편 가입','3N5 가입','가입불가']},
 };
 var cur=null,sel=-1,selBr=null,busy=false,lastSent={},reTimer=null;
 var DEV=localStorage.getItem('gbdev');if(!DEV){DEV=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('gbdev',DEV);}
