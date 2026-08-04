@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>골든벨 마라톤</title>
+<style>
+:root{--sky:#aee0f5;--ink:#1d2733;--green:#12402a;--yellow:#ffd75e;--card:#fff}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Pretendard","Apple SD Gothic Neo",sans-serif;background:linear-gradient(var(--sky),#f4f0e6 40%);color:var(--ink);min-height:100vh;padding:24px 20px 44px}
+.top{font-size:14px;letter-spacing:.14em;color:#5b7d92;font-weight:800;margin-bottom:14px}
+h1{font-size:25px;line-height:1.4;margin-bottom:8px;word-break:keep-all;font-weight:900}
+h1 em{font-style:normal;color:#3e7d4f}
+.sub{font-size:15px;color:#6b7a86;margin-bottom:18px;word-break:keep-all}
+input,textarea{width:100%;background:var(--card);border:3px solid var(--green);border-radius:16px;padding:16px;font-size:20px;margin-top:10px;box-shadow:0 4px 14px rgba(0,0,0,.07)}
+textarea{min-height:120px}
+.cnt{text-align:right;font-size:14px;color:#8b9186;margin-top:8px}
+.brbtn{display:inline-block;background:var(--card);border-radius:999px;padding:13px 20px;font-size:17px;font-weight:800;margin:0 8px 10px 0;box-shadow:0 3px 10px rgba(0,0,0,.08);border:3px solid transparent}
+.brbtn.sel{border-color:var(--green);background:#e6f3d9}
+.opt{display:flex;gap:13px;align-items:center;background:var(--card);border-radius:16px;padding:18px 15px;font-size:19px;font-weight:700;margin-bottom:11px;box-shadow:0 3px 12px rgba(0,0,0,.07);border:3px solid transparent;word-break:keep-all}
+.opt .n{flex:none;width:36px;height:36px;border-radius:50%;background:#e8f0e4;font-weight:800;display:grid;place-items:center;font-size:16px}
+.opt.sel{border-color:var(--green);background:#e6f3d9}
+.opt.sel .n{background:var(--green);color:var(--yellow)}
+button{width:100%;margin-top:16px;background:var(--green);color:var(--yellow);border:none;border-radius:999px;padding:18px;font-size:20px;font-weight:900;position:sticky;bottom:12px;z-index:5;box-shadow:0 8px 20px rgba(18,64,42,.3)}
+button:disabled{opacity:.4}
+.wait{text-align:center;padding-top:20vh}
+.wait .big{font-size:32px;font-weight:900;margin-bottom:16px}
+.wait p{font-size:18px;line-height:1.7;color:#555;word-break:keep-all}
+.wait p b{color:var(--ink)}
+</style></head><body>
+<div class="top">🏁 골든벨 마라톤</div>
+<div id="app" class="wait"><div class="big">👋 환영합니다!</div><p>잠시만요…</p></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ★ Firebase — 7월 fp-live 프로젝트 계승. 응답 스키마는 배포된 firestore.rules와 동일한
+   {ph,v,r,d,t} 5필드 create 전용 — 재제출은 항상 새 문서 add, 덱이 기기 단위 마지막 것만 반영 */
+firebase.initializeApp({apiKey:'AIzaSyDPSVu5cSoPG_1JmCkfP9TXfnRevTLn9WI',projectId:'fp-live-11cc5'});
+var db=firebase.firestore();
+var ROOM=(new URLSearchParams(location.search).get('room')||'골든벨');
+var RSTATE=db.doc('rooms/'+ROOM);
+var RRESP=db.collection('rooms/'+ROOM+'/resp');
+
+// ★ 지점 목록 — 덱 BR 배열과 반드시 동일 순서·동일 표기
+var BRANCHES=['인천','부평','계양','송도','주안','기타'];
+// 문항 보기 — 덱 PAGES와 반드시 같은 텍스트 (수정 시 양쪽 함께)
+var QMAP={
+ q7:{h:'홈앤라이프,<br>우리가 <em>파는 첫날</em>은?',o:['8월 1일','8월 2일','8월 3일','기타']},
+ q11:{h:'이번 <em>신상품 이름</em>은?',o:['홈앤라이프','홈 & 라이프','Home & Life','HOME & LIFE']},
+ q13:{h:'아파트 단체보험만 있으면, 우리 집<br>가재도구 손해는 <em>충분히 보상된다</em>',o:['O','X']},
+ q16:{h:'주택에서 일어나는 화재 중<br><em>가장 확률 높은</em> 것은?',o:['전기 등 합선','가스레인지 등 부주의']},
+ q18:{h:'비데는 32대 가전제품 수리비 담보에서<br><em>보장받을 수 있다</em>',o:['O','X']},
+ q20:{h:'신담보 기후성질환진단비 —<br><em>온열질환 지급금액</em>은?',o:['연 1회 10만원','최초 1회 10만원','연 1회 20만원','최초 1회 20만원']},
+ q23:{h:"홈앤라이프 '다섯 시(時)'에<br><em>포함되지 않는</em> 것은?",o:['재난 시','고장 시','소송 시','운전 시']},
+ q26:{h:'교통사고로 5년 내 20일 입원했던 고객이<br><em>암보험</em>을 가입한다면?',o:['더경증 가입가능','시그니처간편 가입가능','3N5 가입가능','가입불가']},
+};
+var cur=null,sel=-1,selBr=null,busy=false,lastSent={},reTimer=null;
+var DEV=localStorage.getItem('gbdev');if(!DEV){DEV=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('gbdev',DEV);}
+var ME=null;try{ME=JSON.parse(localStorage.getItem('gbme')||'null');}catch(e){}
+
+RSTATE.onSnapshot(function(doc){
+  var st=(doc.exists?doc.data().state:null)||'idle';
+  if(st==='idle') lastSent={};                       // 다음 문항을 위해 쿨다운 리셋
+  if(st!==cur){cur=st;sel=-1;render();}
+});
+
+function el(h){var a=document.getElementById('app');a.className='';a.innerHTML=h;window.scrollTo(0,0);}
+function waitEl(big,p){var a=document.getElementById('app');a.className='wait';a.innerHTML='<div class="big">'+big+'</div><p>'+p+'</p>';}
+function meTag(){return ME?(ME.br+'|'+ME.nm).slice(0,40):'';}
+/* 10초 쿨다운 — 제출 직후 재제출 방지, 지나면 다시 고칠 수 있음 (SI 방식) */
+function cool(k){if(!lastSent[k])return false;var left=10000-(Date.now()-lastSent[k]);
+  if(left<=0)return false;clearTimeout(reTimer);reTimer=setTimeout(render,left+200);return true;}
+function send(data,ok){if(busy)return;busy=true;
+  RRESP.add(data).then(function(){busy=false;ok();})
+  .catch(function(){busy=false;alert('전송 실패 — 한 번만 다시 눌러주세요');});}
+
+function render(){
+  if(!ME){ renderJoin(); return; }                   // 늦게 와도 언제든 입장부터
+  if(cur==='join'){ waitEl('✅ 입장 완료','<b>'+ME.br+' · '+ME.nm+'</b> 님<br>큰 화면에서 이름을 찾아보세요!'); return; }
+  if(cur==='wish') renderWish();
+  else if(cur==='fin') renderFin();
+  else if(QMAP[cur]) renderQ(cur);
+  else waitEl('🏟 '+ME.nm+' 님','큰 화면을 봐주세요!<br><br>참여 순서가 되면 이 화면이<br><b>저절로 바뀝니다.</b> 화면을 끄지 마세요.');
+}
+function renderJoin(){
+  el('<h1>입장하기 🏃</h1><div class="sub">지점 고르고, 이름은 <b>딱 두 글자</b></div>'
+    +BRANCHES.map(function(b,i){return '<span class="brbtn" data-i="'+i+'">'+b+'</span>';}).join('')
+    +'<input id="nm" maxlength="2" placeholder="이름 두 글자 (예: 효성)">'
+    +'<button id="go" disabled>입장!</button>');
+  var btns=document.querySelectorAll('.brbtn'),nm=document.getElementById('nm'),go=document.getElementById('go');
+  function chk(){go.disabled=!(selBr!==null&&nm.value.trim().length===2);}
+  btns.forEach(function(b){b.onclick=function(){btns.forEach(function(x){x.classList.remove('sel')});b.classList.add('sel');selBr=+b.dataset.i;chk();};});
+  nm.oninput=chk;
+  go.onclick=function(){
+    var v=nm.value.trim().slice(0,2), br=BRANCHES[selBr];
+    send({ph:'join',v:v,r:br,d:DEV,t:Date.now()},function(){
+      ME={br:br,nm:v};localStorage.setItem('gbme',JSON.stringify(ME));render();
+    });
+  };
+}
+function renderWish(){
+  if(cool('wish')){ waitEl('💪 접수!','룰렛에 들어갔습니다 — 행운을 빌어요 🎁<br><br><span style="font-size:15px;color:#999">잠시 후 한 줄 더 쓸 수 있어요</span>'); return; }
+  el('<h1>오늘 <em>각오</em> 한 줄!</h1>'
+    +'<div class="sub">쓴 사람만 룰렛 추첨 대상 🎁 — 30자 이내</div>'
+    +'<textarea id="tx" maxlength="30" placeholder="예) 오늘 끝까지 살아남는다"></textarea><div class="cnt"><span id="c">0</span>/30</div>'
+    +'<button id="go">보내기</button>');
+  var t=document.getElementById('tx');t.addEventListener('input',function(){document.getElementById('c').textContent=t.value.length;});
+  document.getElementById('go').onclick=function(){
+    var v=t.value.trim(); if(!v) return alert('한 줄만 적어주세요');
+    if(!confirm('이대로 보낼까요?\n\n「 '+v+' 」')) return;
+    send({ph:'wish',v:v.slice(0,30),r:meTag(),d:DEV,t:Date.now()},function(){lastSent.wish=Date.now();render();});
+  };
+}
+function renderFin(){
+  if(cool('fin')){ waitEl('🎤 접수!','오늘 고생 많으셨어요 — 큰 화면을 봐주세요!'); return; }
+  el('<h1>오늘 <em>소감</em> 한 줄!</h1>'
+    +'<div class="sub">큰 화면에 한 줄씩 올라갑니다 — 30자 이내</div>'
+    +'<textarea id="tx" maxlength="30" placeholder="예) 유령 됐지만 재밌었다"></textarea><div class="cnt"><span id="c">0</span>/30</div>'
+    +'<button id="go">보내기</button>');
+  var t=document.getElementById('tx');t.addEventListener('input',function(){document.getElementById('c').textContent=t.value.length;});
+  document.getElementById('go').onclick=function(){
+    var v=t.value.trim(); if(!v) return alert('한 줄만 적어주세요');
+    if(!confirm('이대로 보낼까요?\n\n「 '+v+' 」')) return;
+    send({ph:'fin',v:v.slice(0,30),r:meTag(),d:DEV,t:Date.now()},function(){lastSent.fin=Date.now();render();});
+  };
+}
+function renderQ(q){
+  if(cool(q)){ waitEl('🗳 제출 완료!','앞의 <b>큰 화면</b>을 봐주세요.<br><br>잠시 후 다시 고칠 수도 있어요<br>(마지막 선택만 반영됩니다)<br><br><span style="font-size:15px;color:#999">어디에 몇 명이 섰는지는 마감 후 공개</span>'); return; }
+  var Q=QMAP[q];
+  el('<h1>'+Q.h+'</h1><div class="sub">하나 선택 — 상의 금지, 내 감을 믿으세요 👀</div>'
+    +Q.o.map(function(o,i){return '<div class="opt" data-i="'+i+'"><span class="n">'+(Q.o.length===2&&(o==='O'||o==='X')?o:['①','②','③','④'][i])+'</span>'+o+'</div>';}).join('')
+    +'<button id="go" disabled>제출!</button>');
+  var opts=document.querySelectorAll('.opt'),go=document.getElementById('go');
+  opts.forEach(function(o){o.onclick=function(){opts.forEach(function(x){x.classList.remove('sel')});o.classList.add('sel');sel=+o.dataset.i;go.disabled=false;};});
+  go.onclick=function(){
+    if(sel<0) return;
+    if(!confirm('『 '+Q.o[sel]+' 』\n\n이대로 제출할까요?')) return;
+    send({ph:q,v:String(sel),r:meTag(),d:DEV,t:Date.now()},function(){lastSent[q]=Date.now();render();});
+  };
+}
+render();
+</script>
+</body></html>
